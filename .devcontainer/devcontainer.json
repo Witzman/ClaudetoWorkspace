@@ -1,19 +1,24 @@
 {
-  "name": "Vite Dev Environment",
+  "name": "Vite + MariaDB Dev Environment",
 
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+
+  "workspaceFolder": "/workspaces/ClaudetoWorkspace",
 
   "forwardPorts": [5173],
 
   "portsAttributes": {
     "5173": {
       "label": "Vite Dev Server",
-      "protocol": "https",
+      "protocol": "http",
       "visibility": "public"
     }
   },
 
   "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "remoteUser": "node",
 
   "customizations": {
     "vscode": {
@@ -25,3 +30,4 @@
     }
   }
 }
+``
