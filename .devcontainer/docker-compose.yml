@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/javascript-node:20
+    volumes:
+      - ..:/workspaces/ClaudetoWorkspace:cached
+    command: sleep infinity
+
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: appdb
+      MARIADB_USER: appuser
+      MARIADB_PASSWORD: apppass
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      # Optional: Initialisierung
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+
+volumes:
+  mariadb-data:
