@@ -8,17 +8,18 @@ const SVG_SIZE = 600
 const DOT_COLORS = ['#888', '#4444ff', '#0088ff', '#00bbaa', '#ffaa00', '#ff4400']
 const DOT_LABELS = ['z₀', 'z₁', 'z₂', 'z₃', 'z₄', 'z₅']
 
-const VIEW_CENTER = { re: -0.5, im: 0 }
+const DEFAULT_VIEW_CENTER = { re: -0.5, im: 0 }
 const BASE_HALF = 2
 const ZOOM_STEP = 1.5
+const PAN_FRACTION = 0.2
 
-function computeBounds(zoomLevel) {
+function computeBounds(viewCenter, zoomLevel) {
   const half = BASE_HALF / zoomLevel
   return {
-    reMin: VIEW_CENTER.re - half,
-    reMax: VIEW_CENTER.re + half,
-    imMin: VIEW_CENTER.im - half,
-    imMax: VIEW_CENTER.im + half,
+    reMin: viewCenter.re - half,
+    reMax: viewCenter.re + half,
+    imMin: viewCenter.im - half,
+    imMax: viewCenter.im + half,
   }
 }
 
@@ -49,6 +50,7 @@ export default function App() {
   const [c, setC] = useState(DEFAULT_C)
   const [dragging, setDragging] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(1)
+  const [viewCenter, setViewCenter] = useState(DEFAULT_VIEW_CENTER)
   const [paintActive, setPaintActive] = useState(false)
 
   const canvasRef = useRef(null)
@@ -58,7 +60,7 @@ export default function App() {
   const paintRef = useRef(false)
   const paintedPoints = useRef([])  // [{re, im, color}] in complex coords
 
-  const bounds = computeBounds(zoomLevel)
+  const bounds = computeBounds(viewCenter, zoomLevel)
   const iterPoints = iterate(c.re, c.im, ITERATIONS)
   const diverges = iterPoints.length < ITERATIONS + 1
 
@@ -94,13 +96,18 @@ export default function App() {
 
   useEffect(() => {
     redrawCanvas(boundsRef.current)
-  }, [zoomLevel]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [zoomLevel, viewCenter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function clearPaint() {
     paintedPoints.current = []
     if (canvasRef.current) {
       canvasRef.current.getContext('2d').clearRect(0, 0, SVG_SIZE, SVG_SIZE)
     }
+  }
+
+  function pan(dRe, dIm) {
+    const step = (BASE_HALF / zoomLevel) * PAN_FRACTION
+    setViewCenter(v => ({ re: v.re + dRe * step, im: v.im + dIm * step }))
   }
 
   function handleMouseDown() {
@@ -142,7 +149,7 @@ export default function App() {
         </div>
 
         <button
-          onClick={() => { setC(DEFAULT_C); setZoomLevel(1) }}
+          onClick={() => { setC(DEFAULT_C); setZoomLevel(1); setViewCenter(DEFAULT_VIEW_CENTER) }}
           style={{
             padding: '7px 12px',
             fontSize: 13,
@@ -177,6 +184,17 @@ export default function App() {
           </div>
           <div style={{ fontSize: 11, color: '#aaa', marginTop: 4, textAlign: 'center' }}>
             {zoomLevel.toFixed(2)}×
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4, marginTop: 8 }}>
+            <span />
+            <button style={btnStyle} onClick={() => pan(0, 1)} title="Up">↑</button>
+            <span />
+            <button style={btnStyle} onClick={() => pan(-1, 0)} title="Left">←</button>
+            <span />
+            <button style={btnStyle} onClick={() => pan(1, 0)} title="Right">→</button>
+            <span />
+            <button style={btnStyle} onClick={() => pan(0, -1)} title="Down">↓</button>
+            <span />
           </div>
         </div>
 
