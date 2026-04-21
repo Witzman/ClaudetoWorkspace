@@ -7,10 +7,38 @@ const ITERATIONS = 20
 const DOT_COLORS = ['#888', '#4444ff', '#0088ff', '#00bbaa', '#ffaa00', '#ff4400']
 const DOT_LABELS = ['z₀', 'z₁', 'z₂', 'z₃', 'z₄', 'z₅']
 
+const VIEW_CENTER = { re: -0.5, im: 0 }
+const BASE_HALF = 2
+const ZOOM_STEP = 1.5
+
+function computeBounds(zoomLevel) {
+  const half = BASE_HALF / zoomLevel
+  return {
+    reMin: VIEW_CENTER.re - half,
+    reMax: VIEW_CENTER.re + half,
+    imMin: VIEW_CENTER.im - half,
+    imMax: VIEW_CENTER.im + half,
+  }
+}
+
+const btnStyle = {
+  flex: 1,
+  padding: '6px 0',
+  fontSize: 18,
+  cursor: 'pointer',
+  background: '#333',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 4,
+  lineHeight: 1,
+}
+
 export default function App() {
   const [c, setC] = useState(DEFAULT_C)
   const [dragging, setDragging] = useState(false)
+  const [zoomLevel, setZoomLevel] = useState(1)
 
+  const bounds = computeBounds(zoomLevel)
   const iterPoints = iterate(c.re, c.im, ITERATIONS)
   const diverges = iterPoints.length < ITERATIONS + 1
 
@@ -43,7 +71,7 @@ export default function App() {
         </div>
 
         <button
-          onClick={() => setC(DEFAULT_C)}
+          onClick={() => { setC(DEFAULT_C); setZoomLevel(1) }}
           style={{
             padding: '7px 12px',
             fontSize: 13,
@@ -56,6 +84,17 @@ export default function App() {
         >
           Reset
         </button>
+
+        <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
+          <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>Zoom</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button style={btnStyle} onClick={() => setZoomLevel(z => z * ZOOM_STEP)} title="Zoom in">+</button>
+            <button style={btnStyle} onClick={() => setZoomLevel(z => Math.max(z / ZOOM_STEP, 0.1))} title="Zoom out">−</button>
+          </div>
+          <div style={{ fontSize: 11, color: '#aaa', marginTop: 4, textAlign: 'center' }}>
+            {zoomLevel.toFixed(2)}×
+          </div>
+        </div>
 
         <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Legend</div>
@@ -83,6 +122,7 @@ export default function App() {
         <MandelbrotCanvas
           c={c}
           iterPoints={iterPoints}
+          bounds={bounds}
           onMouseDown={() => setDragging(true)}
           onMouseMove={newC => { if (dragging) setC(newC) }}
           onMouseUp={() => setDragging(false)}
