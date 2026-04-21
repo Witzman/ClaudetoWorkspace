@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import MandelbrotCanvas from './MandelbrotCanvas.jsx'
-import { iterate } from './mandelbrot.js'
+import { iterate, toSVG } from './mandelbrot.js'
 
 const DEFAULT_C = { re: -0.4, im: 0.6 }
 const ITERATIONS = 20
+const SVG_SIZE = 600
 const DOT_COLORS = ['#888', '#4444ff', '#0088ff', '#00bbaa', '#ffaa00', '#ff4400']
 const DOT_LABELS = ['z₀', 'z₁', 'z₂', 'z₃', 'z₄', 'z₅']
 
@@ -33,14 +34,63 @@ const btnStyle = {
   lineHeight: 1,
 }
 
+const smallBtnStyle = {
+  width: '100%',
+  padding: '6px 0',
+  fontSize: 12,
+  cursor: 'pointer',
+  background: '#888',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 4,
+}
+
 export default function App() {
   const [c, setC] = useState(DEFAULT_C)
   const [dragging, setDragging] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(1)
+  const [paintActive, setPaintActive] = useState(false)
+
+  const canvasRef = useRef(null)
+  const draggingRef = useRef(false)
+  const boundsRef = useRef(null)
+  const divergesRef = useRef(false)
+  const paintRef = useRef(false)
 
   const bounds = computeBounds(zoomLevel)
   const iterPoints = iterate(c.re, c.im, ITERATIONS)
   const diverges = iterPoints.length < ITERATIONS + 1
+
+  // keep refs in sync with latest render values
+  boundsRef.current = bounds
+  divergesRef.current = diverges
+  paintRef.current = paintActive
+
+  useEffect(() => {
+    if (!paintRef.current || !draggingRef.current || !canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    const { x, y } = toSVG(c.re, c.im, SVG_SIZE, SVG_SIZE, boundsRef.current)
+    ctx.fillStyle = divergesRef.current ? '#000000' : '#ff0000'
+    ctx.beginPath()
+    ctx.arc(x, y, 2, 0, Math.PI * 2)
+    ctx.fill()
+  }, [c]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function clearPaint() {
+    if (canvasRef.current) {
+      canvasRef.current.getContext('2d').clearRect(0, 0, SVG_SIZE, SVG_SIZE)
+    }
+  }
+
+  function handleMouseDown() {
+    draggingRef.current = true
+    setDragging(true)
+  }
+
+  function handleMouseUp() {
+    draggingRef.current = false
+    setDragging(false)
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', background: '#f0f0f0' }}>
@@ -85,6 +135,19 @@ export default function App() {
           Reset
         </button>
 
+        <div style={{ borderTop: '1px solid #eee', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={paintActive}
+              onChange={e => setPaintActive(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            Paint
+          </label>
+          <button onClick={clearPaint} style={smallBtnStyle}>Remove paint</button>
+        </div>
+
         <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
           <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>Zoom</div>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -123,9 +186,10 @@ export default function App() {
           c={c}
           iterPoints={iterPoints}
           bounds={bounds}
-          onMouseDown={() => setDragging(true)}
-          onMouseMove={newC => { if (dragging) setC(newC) }}
-          onMouseUp={() => setDragging(false)}
+          canvasRef={canvasRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={newC => { if (draggingRef.current) setC(newC) }}
+          onMouseUp={handleMouseUp}
         />
       </div>
     </div>

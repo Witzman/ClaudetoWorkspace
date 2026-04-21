@@ -79,7 +79,7 @@ function axisLabels(bounds) {
   return labels
 }
 
-export default function MandelbrotCanvas({ c, iterPoints, bounds, onMouseDown, onMouseMove, onMouseUp }) {
+export default function MandelbrotCanvas({ c, iterPoints, bounds, canvasRef, onMouseDown, onMouseMove, onMouseUp }) {
   const svgRef = useRef(null)
 
   function handleMouseMove(e) {
@@ -101,51 +101,59 @@ export default function MandelbrotCanvas({ c, iterPoints, bounds, onMouseDown, o
   const cLabel = `c = ${c.re.toFixed(3)} ${reSign} ${Math.abs(c.im).toFixed(3)}i`
 
   return (
-    <svg
-      ref={svgRef}
-      width={SVG_W}
-      height={SVG_H}
-      style={{ background: '#fafafa', border: '1px solid #ccc', display: 'block', maxWidth: '100%' }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-    >
-      {gridLines(bounds)}
-      {axes(bounds)}
-      {axisLabels(bounds)}
-
-      {iterPoints.length > 1 && (
-        <polyline points={pathPoints} fill="none" stroke="#88ccff" strokeWidth={1.5} strokeOpacity={0.7} />
-      )}
-
-      {displayed.map((p, i) => {
-        const { x, y } = toSVG(p.re, p.im, SVG_W, SVG_H, bounds)
-        const color = DOT_COLORS[i]
-        return i === 0
-          ? <circle key={i} cx={x} cy={y} r={5} fill="white" stroke={color} strokeWidth={2} />
-          : <circle key={i} cx={x} cy={y} r={5} fill={color} />
-      })}
-
-      <circle
-        cx={cPos.x}
-        cy={cPos.y}
-        r={9}
-        fill="#ff8800"
-        stroke="#fff"
-        strokeWidth={2}
-        style={{ cursor: 'grab' }}
-        onMouseDown={onMouseDown}
+    <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0, border: '1px solid #ccc' }}>
+      <canvas
+        ref={canvasRef}
+        width={SVG_W}
+        height={SVG_H}
+        style={{ position: 'absolute', top: 0, left: 0, background: '#fafafa', display: 'block' }}
       />
-
-      <text
-        x={cPos.x + 14}
-        y={cPos.y - 10}
-        fontSize={12}
-        fill="#333"
-        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      <svg
+        ref={svgRef}
+        width={SVG_W}
+        height={SVG_H}
+        style={{ background: 'transparent', display: 'block', maxWidth: '100%', position: 'relative' }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
       >
-        {cLabel}
-      </text>
-    </svg>
+        {gridLines(bounds)}
+        {axes(bounds)}
+        {axisLabels(bounds)}
+
+        {iterPoints.length > 1 && (
+          <polyline points={pathPoints} fill="none" stroke="#88ccff" strokeWidth={1.5} strokeOpacity={0.7} />
+        )}
+
+        {displayed.map((p, i) => {
+          const { x, y } = toSVG(p.re, p.im, SVG_W, SVG_H, bounds)
+          const color = DOT_COLORS[i]
+          return i === 0
+            ? <circle key={i} cx={x} cy={y} r={5} fill="white" stroke={color} strokeWidth={2} />
+            : <circle key={i} cx={x} cy={y} r={5} fill={color} />
+        })}
+
+        <circle
+          cx={cPos.x}
+          cy={cPos.y}
+          r={9}
+          fill="#ff8800"
+          stroke="#fff"
+          strokeWidth={2}
+          style={{ cursor: 'grab' }}
+          onMouseDown={onMouseDown}
+        />
+
+        <text
+          x={cPos.x + 14}
+          y={cPos.y - 10}
+          fontSize={12}
+          fill="#333"
+          style={{ userSelect: 'none', pointerEvents: 'none' }}
+        >
+          {cLabel}
+        </text>
+      </svg>
+    </div>
   )
 }
