@@ -56,6 +56,7 @@ export default function App() {
   const boundsRef = useRef(null)
   const divergesRef = useRef(false)
   const paintRef = useRef(false)
+  const paintedPoints = useRef([])  // [{re, im, color}] in complex coords
 
   const bounds = computeBounds(zoomLevel)
   const iterPoints = iterate(c.re, c.im, ITERATIONS)
@@ -66,17 +67,37 @@ export default function App() {
   divergesRef.current = diverges
   paintRef.current = paintActive
 
+  function redrawCanvas(b) {
+    if (!canvasRef.current) return
+    const ctx = canvasRef.current.getContext('2d')
+    ctx.clearRect(0, 0, SVG_SIZE, SVG_SIZE)
+    for (const pt of paintedPoints.current) {
+      const { x, y } = toSVG(pt.re, pt.im, SVG_SIZE, SVG_SIZE, b)
+      ctx.fillStyle = pt.color
+      ctx.beginPath()
+      ctx.arc(x, y, 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+
   useEffect(() => {
     if (!paintRef.current || !draggingRef.current || !canvasRef.current) return
+    const color = divergesRef.current ? '#000000' : '#ff0000'
+    paintedPoints.current.push({ re: c.re, im: c.im, color })
     const ctx = canvasRef.current.getContext('2d')
     const { x, y } = toSVG(c.re, c.im, SVG_SIZE, SVG_SIZE, boundsRef.current)
-    ctx.fillStyle = divergesRef.current ? '#000000' : '#ff0000'
+    ctx.fillStyle = color
     ctx.beginPath()
     ctx.arc(x, y, 2, 0, Math.PI * 2)
     ctx.fill()
   }, [c]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    redrawCanvas(boundsRef.current)
+  }, [zoomLevel]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function clearPaint() {
+    paintedPoints.current = []
     if (canvasRef.current) {
       canvasRef.current.getContext('2d').clearRect(0, 0, SVG_SIZE, SVG_SIZE)
     }
